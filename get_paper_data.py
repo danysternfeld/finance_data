@@ -14,6 +14,7 @@ def parse_bizportal_fund(paperID: str, timeout: float = 20) -> dict[str, object]
     three-year return from the performance page and Sharpe ratio from the
     main page, preserving the exact text Bizportal displays.
     """
+    print(f"Fetching Bizportal fund data for paperID: {paperID}")
     url = f"https://www.bizportal.co.il/tradedfund/quote/generalview/{paperID}"
     parsed_url = urlparse(url)
     hostname = (parsed_url.hostname or "").lower()
