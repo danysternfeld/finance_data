@@ -118,6 +118,6 @@ if __name__ == "__main__":
     print(holdings.head())
     print(holdings.columns.tolist())
     print(holdings)
-    holdings.to_excel(r"c:\Users\danys\OneDrive\Documents\scripts\finance_data\א2חזקות.xlsx", index=False)   
+    holdings.to_excel(r"c:\Users\danys\OneDrive\Documents\scripts\finance_data\תחבצ.xlsx", index=False)   
 
 
