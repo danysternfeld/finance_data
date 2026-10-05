@@ -124,7 +124,8 @@ def fix_percentage_columns(holdings: DataFrame) -> DataFrame:
     percentage_columns = ["%  מהתיק", "% שינוי יומי", "רווח ב-%", "תשואה 12 חודשים"]
     for pct_col in percentage_columns:
         if pct_col in holdings.columns:
-            holdings[pct_col] = holdings[pct_col].astype(float) * 100
+            holdings[pct_col] = holdings[pct_col].astype(float) 
+    holdings['three_year_return_percent'] = holdings['three_year_return_percent'].astype(float)/100
     # remove the % sign from management_fee column if it exists, convert to float 
     if "management_fee" in holdings.columns:
         try:
@@ -132,16 +133,23 @@ def fix_percentage_columns(holdings: DataFrame) -> DataFrame:
         except ValueError:
             print(f"Warning: Could not convert management_fee to float. Please check the data format. {holdings['management_fee']}")
             pass
+    holdings['שווי אחזקה ב ₪'] = holdings['שווי אחזקה ב ₪'].astype(float) 
     holdings["פרופיל חשיפה"] = holdings["פרופיל חשיפה"].str.replace(r'^$|None|00', '\'00', regex=True)
     return holdings
 
+def get_tlv_data(file_path: str) -> DataFrame:
+    """Read holdings from an Excel file and enrich them with Bizportal data."""
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"The file {file_path} does not exist.")
+    holdings = read_holdings_excel_and_enrich(file_path)
+    enriched_holdings = fix_percentage_columns(holdings)
+    return enriched_holdings
+
 if __name__ == "__main__":
-    holdings = read_holdings_excel_and_enrich(r"c:\Users\danys\OneDrive\Documents\scripts\finance_data\אחזקות.xls")
+    holdings = get_tlv_data(r"c:\Users\danys\OneDrive\Documents\scripts\finance_data\אחזקות.xls")
     print(holdings.head())
     print(holdings.columns.tolist())
     print(holdings)
-    holdings = fix_percentage_columns(holdings)
-
     holdings.to_excel(r"c:\Users\danys\OneDrive\Documents\scripts\finance_data\תחבצ.xlsx", index=False)   
 
 
