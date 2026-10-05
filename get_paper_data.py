@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+import re
 
 
 def parse_bizportal_fund(paperID: str, timeout: float = 20) -> dict[str, object]:
@@ -85,26 +86,39 @@ def parse_bizportal_fund(paperID: str, timeout: float = 20) -> dict[str, object]
             tables.append({"name": name, "data": frames[0]})
 
     performance_url = url.replace("/quote/generalview/", "/quote/performance/")
-    if performance_url == url:
-        raise ValueError("url must point to a Bizportal fund generalview page")
-    performance_response = requests.get(performance_url, headers=headers, timeout=timeout)
-    performance_response.raise_for_status()
-
-    metrics = {
-        "three_year_return_percent": None,
-        "sharpe_ratio_12_months": sharpe_value,
-    }
-    for frame in pd.read_html(StringIO(performance_response.text)):
-        if frame.empty or len(frame.columns) < 2:
+    for type in ('mutualfunds','tradedfund', 'bonds'):
+        performance_url = re.sub(r"/\w*/quote/performance/", rf"/{type}/quote/performance/" , performance_url, flags=re.IGNORECASE)
+        if performance_url == url:
+            raise ValueError("url must point to a Bizportal fund generalview page")
+        print(f"Fetching performance data from: ---{performance_url}---")
+        performance_response = requests.get(performance_url, headers=headers, timeout=timeout,allow_redirects=False)
+        print(f"Fetching performance data from: {performance_url}")
+        print(f"Performance page status code: {performance_response.status_code}")
+        print(f"Performance page content length: {len(performance_response.content)} bytes")
+        performance_response.raise_for_status()
+        if(len(performance_response.content) == 0 ):
             continue
-        labels = frame.iloc[:, 0].astype(str).str.strip()
-        for row_index, label in labels.items():
-            values = frame.iloc[row_index, 1:]
-            if label == "3 שנים":
-                metrics["three_year_return_percent"] = pd.to_numeric(
-                    str(values.iloc[0]).replace("%", "").replace(",", ""),
-                    errors="coerce",
-                )
+        metrics = {
+            "three_year_return_percent": None,
+            "sharpe_ratio_12_months": sharpe_value,
+        }
+        for frame in pd.read_html(StringIO(performance_response.text)):
+            print(f"Processing performance table with shape: {frame.shape}")
+            print(f"Performance table columns: {frame.columns.tolist()}")
+            if frame.empty or len(frame.columns) < 2:
+                print("Skipping empty or invalid performance table")
+                continue
+            labels = frame.iloc[:, 0].astype(str).str.strip()
+            for row_index, label in labels.items():
+                values = frame.iloc[row_index, 1:]
+                print(f"Row {row_index}: Label: {label}, Values: {values.tolist()}")
+                if label == "3 שנים":
+                    metrics["three_year_return_percent"] = pd.to_numeric(
+                        str(values.iloc[0]).replace("%", "").replace(",", ""),
+                        errors="coerce",
+                    )
+                    print(f"Found 3-year return: {metrics['three_year_return_percent']}%")
+                    break
 
     return {
         "url": url,
