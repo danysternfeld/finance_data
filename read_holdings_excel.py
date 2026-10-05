@@ -107,17 +107,41 @@ def enrich_holdings_with_bizportal(holdings: DataFrame) -> DataFrame:
             "bizportal_url",
         ],
     )
+
     for column in enrichment_df.columns:
         enriched_holdings[column] = enrichment_df[column]
     return enriched_holdings
 
 
+def read_holdings_excel_and_enrich(path: str) -> DataFrame:
+    """Read holdings from an Excel file and enrich them with Bizportal data."""
+    holdings = read_holdings_excel(path)
+    enriched_holdings = enrich_holdings_with_bizportal(holdings)
+    return enriched_holdings
+
+def fix_percentage_columns(holdings: DataFrame) -> DataFrame:
+    """Convert percentage columns to float and multiply by 100 to get actual percentage values."""
+    percentage_columns = ["%  מהתיק", "% שינוי יומי", "רווח ב-%", "תשואה 12 חודשים"]
+    for pct_col in percentage_columns:
+        if pct_col in holdings.columns:
+            holdings[pct_col] = holdings[pct_col].astype(float) * 100
+    # remove the % sign from management_fee column if it exists, convert to float 
+    if "management_fee" in holdings.columns:
+        try:
+            holdings["management_fee"] = holdings["management_fee"].str.replace("%", "").astype(float) 
+        except ValueError:
+            print(f"Warning: Could not convert management_fee to float. Please check the data format. {holdings['management_fee']}")
+            pass
+    holdings["פרופיל חשיפה"] = holdings["פרופיל חשיפה"].str.replace(r'^$|None|00', '\'00', regex=True)
+    return holdings
+
 if __name__ == "__main__":
-    holdings = read_holdings_excel(r"c:\Users\danys\OneDrive\Documents\scripts\finance_data\אחזקות.xls")
-    holdings = enrich_holdings_with_bizportal(holdings)
+    holdings = read_holdings_excel_and_enrich(r"c:\Users\danys\OneDrive\Documents\scripts\finance_data\אחזקות.xls")
     print(holdings.head())
     print(holdings.columns.tolist())
     print(holdings)
+    holdings = fix_percentage_columns(holdings)
+
     holdings.to_excel(r"c:\Users\danys\OneDrive\Documents\scripts\finance_data\תחבצ.xlsx", index=False)   
 
 
