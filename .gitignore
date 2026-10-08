@@ -1,2 +1,3 @@
 *.xl*
+*.csv
 __pycache__/*
