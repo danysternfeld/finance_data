@@ -18,7 +18,7 @@ def get_ibkr_sharpe_and_performance():
     for paper in ibkr_df['Symbol']:
         if paper in tickers_df['TICKER'].values:
             yf_ticker = str(tickers_df.loc[tickers_df['TICKER'] == paper]["YF TICKER"].values[0])
-            
+            print(f"Querying ticker {yf_ticker}")
             sharpe_ratio = compute_sharpe_ratio(yf_ticker,  last_year,today)
             performance = compute_performance(yf_ticker)
             ibkr_df.loc[ibkr_df['Symbol'] == paper, 'sharpe_ratio_12_months'] = sharpe_ratio

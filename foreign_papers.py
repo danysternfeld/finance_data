@@ -65,6 +65,7 @@ def compute_performance(ticker: str) :
             pct_change = (end_price - start_price) / start_price * 100
             performance[period] = pct_change
         else:
+            print("\tMissing 3y data. will mark as NA")
             performance[period] = "NA"
         #print(performance)
     return performance
