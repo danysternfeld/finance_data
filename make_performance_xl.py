@@ -57,7 +57,6 @@ def make_performance_xl(file_path: str, output_path: str) -> None:
     add_df_columns_to_excel(ws, df,'three_year_return_percent', 5)
     add_df_columns_to_excel(ws, df,'תשואה 12 חודשים', 6)
     add_df_columns_to_excel(ws, df,'פרופיל חשיפה', 7)
-    print(df['פרופיל חשיפה'])
     add_df_columns_to_excel(ws, df,'sharpe_ratio_12_months', 8)
     add_df_columns_to_excel(ws, df,'management_fee', 9)
     add_df_columns_to_excel(ws, df,'שווי אחזקה ב ₪', 13)
