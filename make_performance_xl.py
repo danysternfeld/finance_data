@@ -1,4 +1,5 @@
 from read_holdings_excel import get_tlv_data
+import ibkr_papers
 from pandas import DataFrame
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows  
@@ -38,6 +39,7 @@ def add_df_columns_to_excel(ws, df,df_heading,ws_column):
 def make_performance_xl(file_path: str, output_path: str) -> None:
     """Read holdings from an Excel file, enrich them with Bizportal data, and save to a new Excel file."""
     holdings = get_tlv_data(file_path)
+    ibkr = ibkr_papers.get_ibkr_sharpe_and_performance()
     #holdings = DataFrame()
     # read an excel file from the output path
     workbook = load_workbook(output_path)  
@@ -48,7 +50,7 @@ def make_performance_xl(file_path: str, output_path: str) -> None:
     #   'תאריך פעולה אחרונה', '% שינוי יומי', 'תשואה 12 חודשים', 'רווח ב-%',
     #   'רווח ב ₪', 'שער בסיס', 'מס התיק', 'fund_name', 'management_fee',
     #   'three_year_return_percent', 'sharpe_ratio_12_months', 'bizportal_url'
-    df = DataFrame(holdings, columns=['שם הנייר', 'מספר נייר', 'three_year_return_percent', 'תשואה 12 חודשים', 'פרופיל חשיפה',
+    df = DataFrame(holdings, columns=['שם הנייר', 'מספר נייר', 'שווי אחזקה ב ₪','three_year_return_percent', 'תשואה 12 חודשים', 'פרופיל חשיפה',
                                       'sharpe_ratio_12_months','management_fee'])
 
     adjust_rows(ws, df)
