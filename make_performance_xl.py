@@ -115,14 +115,15 @@ def make_performance_xl(file_path: str, output_path: str,paper_composition: str)
     for index, row in compo.iterrows():
         #print(row.values)
         #print(f"{row['ניר']} - {row['מדינה']}  ")
-        df.loc[df['מספר נייר'] == str(row['ניר']), 'מדינה'] =  row.loc['מדינה']
-        df.loc[df['מספר נייר'] == str(row['ניר']), 'קונצרני'] =  row.loc['קונצרני']
-        df.loc[df['מספר נייר'] == str(row['ניר']), 'assets'] =  row.loc['assets']
-        df.loc[df['מספר נייר'] == str(row['ניר']), 'אגח חול'] =  row.loc['אגח חול']
-        df.loc[df['מספר נייר'] == str(row['ניר']), 'מניות חול'] =  row.loc['מניות חול']
-        df.loc[df['מספר נייר'] == str(row['ניר']), 'מניות ישראל'] =  row.loc['מניות ישראל']
-        df.loc[df['מספר נייר'] == str(row['ניר']), 'נקוב $'] =  row.loc['נקוב $']
-        df.loc[df['מספר נייר'] == str(row['ניר']), 'נקוב EU'] =  row.loc['נקוב EU']
+        num_paper = str(row['ניר']).strip()
+        df.loc[df['מספר נייר'] == num_paper, 'מדינה'] =  row.loc['מדינה']
+        df.loc[df['מספר נייר'] == num_paper, 'קונצרני'] =  row.loc['קונצרני']
+        df.loc[df['מספר נייר'] == num_paper, 'assets'] =  row.loc['assets']
+        df.loc[df['מספר נייר'] == num_paper, 'אגח חול'] =  row.loc['אגח חול']
+        df.loc[df['מספר נייר'] == num_paper, 'מניות חול'] =  row.loc['מניות חול']
+        df.loc[df['מספר נייר'] == num_paper, 'מניות ישראל'] =  row.loc['מניות ישראל']
+        df.loc[df['מספר נייר'] == num_paper, 'נקוב $'] =  row.loc['נקוב $']
+        df.loc[df['מספר נייר'] == num_paper, 'נקוב EU'] =  row.loc['נקוב EU']
 
         #print(df.loc[df['מספר נייר'] == row['ניר'], 'מדינה'])
     #print(df['מדינה'])
