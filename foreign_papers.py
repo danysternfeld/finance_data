@@ -66,7 +66,7 @@ def compute_performance(ticker: str) :
             #print(data["Close"].iloc[-1])
             start_price = data["Close"].iloc[0]
             end_price = data["Close"].iloc[-1]
-            pct_change = (end_price - start_price) / start_price * 100
+            pct_change = (end_price - start_price) / start_price 
             performance[period] = pct_change
         else:
             print(f"\tMissing {period} data. will mark as NA")
