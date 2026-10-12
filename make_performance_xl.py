@@ -1,9 +1,8 @@
-from itertools import count
+from ast import ExceptHandler
+from decimal import Decimal
 import sys
-
 from flask.config import T
-from sqlalchemy import true
-
+import requests
 from read_holdings_excel import get_tlv_data
 import ibkr_papers
 from pandas import DataFrame
@@ -14,10 +13,25 @@ from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 from openpyxl.utils import column_index_from_string
 
-def column_formula(ws,formula:str, col:int, start_row:int, end_row:int):
+
+exchange_rates = {}
+
+def get_exchange_rates():
+    Currencies = ['eur','usd','jpy','sgd']
+    for curr in Currencies:
+        url = f"https://api.frankfurter.dev/v2/rate/{curr}/ils"
+        res = requests.get(url)
+        data = res.json(parse_float=Decimal)
+        exchange_rates[curr.upper()] =  data['rate']
+    #print(exchange_rates)
+
+    
+def column_formula(ws,formula:str, col:int, start_row:int, end_row:int,number_format=None):
     """Apply a formula to a column in an Excel worksheet."""
     for row in range(start_row, end_row + 1):
         cell = ws.cell(row=row, column=col)
+        if(number_format != None):
+            cell.number_format = number_format
         cell.value = formula.replace("##", str(row))
 
 def write_row(ws,row,data):
@@ -72,16 +86,26 @@ def make_performance_xl(file_path: str, output_path: str,paper_composition: str)
     # 	CurrencyPrimary	AssetClass	PercentOfNAV	sharpe_ratio_12_months	performance_1y	performance_3y
 
     ibkr_df = DataFrame(ibkr, columns=["Name", "Symbol","PositionValue","performance_3y","performance_1y","exposure","sharpe_ratio_12_months",
-                                       "managment_fee","currency"])
+                                       "managment_fee","CurrencyPrimary"])
     print(ibkr_df)
 
     ibkr_df.rename(columns={"Name":'שם הנייר', "Symbol":'מספר נייר',"PositionValue":'שווי אחזקה ב ₪',
                             "performance_3y":'three_year_return_percent',"performance_1y":'תשואה 12 חודשים'
                             ,"exposure": 'פרופיל חשיפה',"sharpe_ratio_12_months":'sharpe_ratio_12_months',
-                                       "managment_fee":"managment_fee","currency":"מטבע מסחר"},inplace=True)
+                                       "managment_fee":"managment_fee","CurrencyPrimary":"מטבע מסחר"},inplace=True)
+    # convert ibkr values to ILS
+    rate_locations = {'USD':"L63",'EUR':"L64",'JPY':'L65','SGD':'L66'}
+
+    for index,row in ibkr_df.iterrows():
+        if row["מטבע מסחר"] in exchange_rates.keys():
+            ibkr_df.loc[index,'שווי אחזקה ב ₪']  =  f"={str(row['שווי אחזקה ב ₪'])}*{rate_locations[row["מטבע מסחר"]]}"
+    
     df  = pd.concat([tlv_df,ibkr_df],ignore_index=True)
-    print(ibkr_df)
-    print(df)
+
+
+
+    #print(ibkr_df)
+    #print(df)
     cell = find_value(ws,"בית באמרגטי")
     amargeti_row_values = []
     if(cell != None):
@@ -142,23 +166,26 @@ def make_performance_xl(file_path: str, output_path: str,paper_composition: str)
 
 def set_formula_definitions(ws,num_rows):
     formulas = {}
-    formulas["K"] = "=E##-3*I##/100"
-    formulas["L"] = "=F##-I##/100"
-    formulas["N"] = "=M##/$N$60"
-    formulas["O"] = "=M##/$M$61"
-    formulas["V"] = "=SUM(P##:U##)"
-    formulas["Y"] = "=P##*M##"
-    formulas["Z"] = "=Q##*M##"
-    formulas["AA"] = "=S##*M##"
-    formulas["AB"] = "=T##*M##" 
-    formulas["AC"] = "=U##*M##" 
-    formulas["AD"] = "=R##*M##" 
-    formulas["AE"] = "=W##*M##" 
-    formulas["AF"] = "=X##*M##" 
+    formulas["K"] = ("=E##-3*I##/100",None)
+    formulas["L"] = ("=F##-I##/100",     "0.0%")
+    formulas["N"] = ("=M##/$N$60",None)
+    formulas["O"] = ("=M##/$M$61",None)
+    formulas["V"] = ("=SUM(P##:U##)",None)
+    formulas["Y"] = ("=P##*M##",None)
+    formulas["Z"] = ("=Q##*M##",None)
+    formulas["AA"] =("=S##*M##",None)
+    formulas["AB"] =("=T##*M##" ,None)
+    formulas["AC"] =("=U##*M##" ,None)
+    formulas["AD"] =("=R##*M##" ,None)
+    formulas["AE"] =("=W##*M##" ,None)
+    formulas["AF"] =("=X##*M##" ,None)
     for col in formulas.keys():
         col_num = column_index_from_string(col)
-        column_formula(ws,formulas[col],col_num,2,num_rows+2)
-
+        column_formula(ws,formulas[col][0],col_num,2,num_rows+2,formulas[col][1])
+    ws["L63"] = exchange_rates['USD']
+    ws["L64"] = exchange_rates['EUR']
+    ws["L65"] = exchange_rates['JPY']
+    ws["L66"] = exchange_rates['SGD']
 
 def find_value(ws,target_value):
     found_cell = None
@@ -206,6 +233,7 @@ def adjust_rows(ws, df):
     #workbook.save(output_file_path)
 
 if __name__ == "__main__":
+    get_exchange_rates()
     input_file_path = "C:/Users/danys/OneDrive/Documents/scripts/finance_data/אחזקות.xls"
     output_file_path = "C:/Users/danys/OneDrive/Documents/scripts/finance_data/דוגמת תחבצ לדני_2 .xlsx"
     paper_composition = "C:/Users/danys/OneDrive/Documents/scripts/finance_data/הרכב ניירות.xlsx"
