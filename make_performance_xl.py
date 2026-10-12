@@ -1,6 +1,12 @@
+from itertools import count
+
+from flask.config import T
+from sqlalchemy import true
+
 from read_holdings_excel import get_tlv_data
 import ibkr_papers
 from pandas import DataFrame
+import pandas as pd
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows  
 from openpyxl import load_workbook  
@@ -12,7 +18,12 @@ def column_formula(ws,formula:str, col:int, start_row:int, end_row:int):
         cell = ws.cell(row=row, column=col)
         cell.value = formula.replace("##", str(row))
 
-def count_tlv_rows(ws):
+def write_row(ws,row,data):
+    for col in range(1,len(data)):
+        cell = ws.cell(row=row, column=col)
+        cell.value = data[col -1]
+
+def count_rows(ws):
     num_rows = 0
     cell = ""
     for row in range(2, ws.max_row):
@@ -45,15 +56,42 @@ def make_performance_xl(file_path: str, output_path: str) -> None:
     workbook = load_workbook(output_path)  
     # get active sheet
     ws = workbook.active
+    data_cell_range = "A2:O59"
     #print(holdings.columns)
     # 'מספר נייר', 'שם הנייר', 'שווי אחזקה ב ₪', '%  מהתיק', 'פרופיל חשיפה',
     #   'תאריך פעולה אחרונה', '% שינוי יומי', 'תשואה 12 חודשים', 'רווח ב-%',
     #   'רווח ב ₪', 'שער בסיס', 'מס התיק', 'fund_name', 'management_fee',
     #   'three_year_return_percent', 'sharpe_ratio_12_months', 'bizportal_url'
-    df = DataFrame(holdings, columns=['שם הנייר', 'מספר נייר', 'שווי אחזקה ב ₪','three_year_return_percent', 'תשואה 12 חודשים', 'פרופיל חשיפה',
-                                      'sharpe_ratio_12_months','management_fee'])
+    tlv_df = DataFrame(holdings, columns=['שם הנייר', 'מספר נייר', 'שווי אחזקה ב ₪','three_year_return_percent', 'תשואה 12 חודשים', 'פרופיל חשיפה',
+                                      'sharpe_ratio_12_months','management_fee',"מטבע מסחר"])
 
-    adjust_rows(ws, df)
+    # 	ClientAccountID	Symbol	Quantity	MarkPrice	PositionValue	CostBasisPrice	CostBasisMoney	FifoPnlUnrealized
+    # 	CurrencyPrimary	AssetClass	PercentOfNAV	sharpe_ratio_12_months	performance_1y	performance_3y
+
+    ibkr_df = DataFrame(ibkr, columns=["Name", "Symbol","PositionValue","performance_3y","performance_1y","exposure","sharpe_ratio_12_months",
+                                       "managment_fee","currency"])
+    print(ibkr_df)
+
+    ibkr_df.rename(columns={"Name":'שם הנייר', "Symbol":'מספר נייר',"PositionValue":'שווי אחזקה ב ₪',
+                            "performance_3y":'three_year_return_percent',"performance_1y":'תשואה 12 חודשים'
+                            ,"exposure": 'פרופיל חשיפה',"sharpe_ratio_12_months":'sharpe_ratio_12_months',
+                                       "managment_fee":"managment_fee","currency":"מטבע מסחר"},inplace=True)
+    df  = pd.concat([tlv_df,ibkr_df],ignore_index=True)
+    print(ibkr_df)
+    print(df)
+    cell = find_value(ws,"בית באמרגטי")
+    amargeti_row_values = []
+    if(cell != None):
+        row_num = cell.row
+        amargeti_row_values = list(next(ws.iter_rows(min_row=row_num, max_row=row_num, values_only=True)))
+        max_row = len(df)+1
+
+
+
+
+    
+    #adjust_rows(ws, df)
+    clear_range(ws,data_cell_range)
     add_df_columns_to_excel(ws, df,'שם הנייר', 1)
     add_df_columns_to_excel(ws, df,'מספר נייר', 2)
     add_df_columns_to_excel(ws, df,'three_year_return_percent', 5)
@@ -61,14 +99,40 @@ def make_performance_xl(file_path: str, output_path: str) -> None:
     add_df_columns_to_excel(ws, df,'פרופיל חשיפה', 7)
     add_df_columns_to_excel(ws, df,'sharpe_ratio_12_months', 8)
     add_df_columns_to_excel(ws, df,'management_fee', 9)
+    add_df_columns_to_excel(ws, df,'מטבע מסחר', 10)
     add_df_columns_to_excel(ws, df,'שווי אחזקה ב ₪', 13)
     new_out = output_path.replace(".xlsx", "_MAGIC.xlsx")
+    write_row(ws,max_row+1,amargeti_row_values)
     
     workbook.save(new_out)
 
 
+def find_value(ws,target_value):
+    found_cell = None
+
+    # Iterate through all populated rows and columns
+    for row in ws.iter_rows():
+        for cell in row:
+            if cell.value == target_value:
+                found_cell = cell
+                break  # Break out of the inner loop
+        if found_cell:
+            break  # Break out of the outer loop
+    return found_cell
+
+
+
+
+def clear_range(ws,range):
+    cell_range = ws[range]
+    # Iterate and clear cell   values
+    for row in cell_range:
+        for cell in row:
+            cell.value = None
+
+
 def adjust_rows(ws, df):
-    count = count_tlv_rows(ws)
+    count = count_rows(ws)
     print(f"Number of rows with numeric values in column 2: {count}")
     df_row_count = len(df)
     print(f"Number of rows in the DataFrame: {df_row_count}")
