@@ -117,7 +117,13 @@ def read_holdings_excel_and_enrich(path: str) -> DataFrame:
     """Read holdings from an Excel file and enrich them with Bizportal data."""
     holdings = read_holdings_excel(path)
     enriched_holdings = enrich_holdings_with_bizportal(holdings)
+    enriched_holdings = clean_dolar_related_data(enriched_holdings)
     return enriched_holdings
+
+def clean_dolar_related_data(holdings):
+    holdings.loc[holdings['מטבע מסחר'] == "דולר", 'sharpe_ratio_12_months'] = 0
+    holdings.loc[holdings['מטבע מסחר'] == "דולר", 'three_year_return_percent'] = 0  
+    return holdings
 
 def fix_percentage_columns(holdings: DataFrame) -> DataFrame:
     """Convert percentage columns to float and multiply by 100 to get actual percentage values."""
