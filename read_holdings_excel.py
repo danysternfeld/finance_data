@@ -149,7 +149,7 @@ if __name__ == "__main__":
     holdings = get_tlv_data(r"c:\Users\danys\OneDrive\Documents\scripts\finance_data\אחזקות.xls")
     print(holdings.head())
     print(holdings.columns.tolist())
-    print(holdings)
+    print(holdings['שווי אחזקה ב ₪'])
     holdings.to_excel(r"c:\Users\danys\OneDrive\Documents\scripts\finance_data\תחבצ.xlsx", index=False)   
 
 

@@ -25,7 +25,7 @@ def get_ibkr_sharpe_and_performance():
             ibkr_df.loc[ibkr_df['Symbol'] == paper, 'performance_1y'] = performance.get("1y", None)
             ibkr_df.loc[ibkr_df['Symbol'] == paper, 'performance_3y'] = performance.get("3y", None)
     ibkr_df.to_excel("IBKR_HOLDINGS.xlsx",engine="openpyxl")
-
+    return ibkr_df
 
 if __name__ == "__main__":
     get_ibkr_sharpe_and_performance()

@@ -42,11 +42,13 @@ def compute_sharpe_ratio(ticker: str, start_date: str, end_date: str, risk_free_
     sharpe_ratio = np.sqrt(252) * (excess_returns.mean() / excess_returns.std())
     return sharpe_ratio.iloc[0]
 
-def check_3year_perf_sanity(history_data):
+def check_Nyear_perf_sanity(history_data,years):
     today = pd.Timestamp.now().strftime("%Y-%m-%d")
-    three_years_ago = (pd.Timestamp.now() - pd.DateOffset(years=3)).strftime("%Y-%m")
+    N_years_ago = (pd.Timestamp.now() - pd.DateOffset(years=years)).strftime("%Y-%m")
     first_date = history_data.index[0].strftime("%Y-%m")
-    return first_date == three_years_ago
+    #print(f"latest = {history_data.index[-1]}")
+    #print(f"earliest = {history_data.index[0]}")
+    return first_date == N_years_ago
 
 
 
@@ -57,15 +59,17 @@ def compute_performance(ticker: str) :
     #print(f"Ticker: {ticker}")
     for period in periods:
         data = yf.Ticker(ticker).history(period=period).dropna()
-        if(period == "3y"):
-            sane = check_3year_perf_sanity(data)
+        sane = check_Nyear_perf_sanity(data,int(period[0]))
         if sane:
+            #print(ticker)
+            #print(data["Close"].iloc[0])
+            #print(data["Close"].iloc[-1])
             start_price = data["Close"].iloc[0]
             end_price = data["Close"].iloc[-1]
             pct_change = (end_price - start_price) / start_price * 100
             performance[period] = pct_change
         else:
-            print("\tMissing 3y data. will mark as NA")
+            print(f"\tMissing {period} data. will mark as NA")
             performance[period] = "NA"
         #print(performance)
     return performance
