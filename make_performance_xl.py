@@ -1,4 +1,5 @@
 from itertools import count
+import sys
 
 from flask.config import T
 from sqlalchemy import true
@@ -11,6 +12,7 @@ from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows  
 from openpyxl import load_workbook  
 from openpyxl.styles import PatternFill
+from openpyxl.utils import column_index_from_string
 
 def column_formula(ws,formula:str, col:int, start_row:int, end_row:int):
     """Apply a formula to a column in an Excel worksheet."""
@@ -47,7 +49,8 @@ def add_df_columns_to_excel(ws, df,df_heading,ws_column):
                 ws.cell(row=row_idx, column=col_index).fill = yellow_fill  # Highlight the cell with yellow color
 
 
-def make_performance_xl(file_path: str, output_path: str) -> None:
+
+def make_performance_xl(file_path: str, output_path: str,paper_composition: str) -> None:
     """Read holdings from an Excel file, enrich them with Bizportal data, and save to a new Excel file."""
     holdings = get_tlv_data(file_path)
     ibkr = ibkr_papers.get_ibkr_sharpe_and_performance()
@@ -103,8 +106,57 @@ def make_performance_xl(file_path: str, output_path: str) -> None:
     add_df_columns_to_excel(ws, df,'שווי אחזקה ב ₪', 13)
     new_out = output_path.replace(".xlsx", "_MAGIC.xlsx")
     write_row(ws,max_row+1,amargeti_row_values)
-    
+    set_formula_definitions(ws,len(df))
+
+    compo = pd.read_excel(paper_composition)
+    #  שם הקרן       ניר  מדינה  קונצרני  assets  מניות ישראל  מניות חול  אגח חול  check  נקוב $
+    #print(compo)
+    #print(df["מספר נייר"].values)
+    for index, row in compo.iterrows():
+        #print(row.values)
+        #print(f"{row['ניר']} - {row['מדינה']}  ")
+        df.loc[df['מספר נייר'] == str(row['ניר']), 'מדינה'] =  row.loc['מדינה']
+        df.loc[df['מספר נייר'] == str(row['ניר']), 'קונצרני'] =  row.loc['קונצרני']
+        df.loc[df['מספר נייר'] == str(row['ניר']), 'assets'] =  row.loc['assets']
+        df.loc[df['מספר נייר'] == str(row['ניר']), 'אגח חול'] =  row.loc['אגח חול']
+        df.loc[df['מספר נייר'] == str(row['ניר']), 'מניות חול'] =  row.loc['מניות חול']
+        df.loc[df['מספר נייר'] == str(row['ניר']), 'מניות ישראל'] =  row.loc['מניות ישראל']
+        df.loc[df['מספר נייר'] == str(row['ניר']), 'נקוב $'] =  row.loc['נקוב $']
+        df.loc[df['מספר נייר'] == str(row['ניר']), 'נקוב EU'] =  row.loc['נקוב EU']
+
+        #print(df.loc[df['מספר נייר'] == row['ניר'], 'מדינה'])
+    #print(df['מדינה'])
+    add_df_columns_to_excel(ws, df,'מדינה', 16)
+    add_df_columns_to_excel(ws, df,'קונצרני', 17)
+    add_df_columns_to_excel(ws, df,'assets', 18)
+    add_df_columns_to_excel(ws, df,'אגח חול', 21)
+    add_df_columns_to_excel(ws, df,'מניות חול', 20)
+    add_df_columns_to_excel(ws, df,'מניות ישראל', 19)
+    add_df_columns_to_excel(ws, df,'נקוב $', 23)
+    add_df_columns_to_excel(ws, df,'נקוב EU', 24)
+
+
     workbook.save(new_out)
+
+
+def set_formula_definitions(ws,num_rows):
+    formulas = {}
+    formulas["K"] = "=E##-3*I##/100"
+    formulas["L"] = "=F##-I##/100"
+    formulas["N"] = "=M##/$N$60"
+    formulas["O"] = "=M##/$M$61"
+    formulas["V"] = "=SUM(P##:U##)"
+    formulas["Y"] = "=P##*M##"
+    formulas["Z"] = "=Q##*M##"
+    formulas["AA"] = "=S##*M##"
+    formulas["AB"] = "=T##*M##" 
+    formulas["AC"] = "=U##*M##" 
+    formulas["AD"] = "=R##*M##" 
+    formulas["AE"] = "=W##*M##" 
+    formulas["AF"] = "=X##*M##" 
+    for col in formulas.keys():
+        col_num = column_index_from_string(col)
+        column_formula(ws,formulas[col],col_num,2,num_rows+2)
 
 
 def find_value(ws,target_value):
@@ -155,6 +207,7 @@ def adjust_rows(ws, df):
 if __name__ == "__main__":
     input_file_path = "C:/Users/danys/OneDrive/Documents/scripts/finance_data/אחזקות.xls"
     output_file_path = "C:/Users/danys/OneDrive/Documents/scripts/finance_data/דוגמת תחבצ לדני_2 .xlsx"
-    make_performance_xl(input_file_path, output_file_path)    
+    paper_composition = "C:/Users/danys/OneDrive/Documents/scripts/finance_data/הרכב ניירות.xlsx"
+    make_performance_xl(input_file_path, output_file_path,paper_composition)    
 
 
