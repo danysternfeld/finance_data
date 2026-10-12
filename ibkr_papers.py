@@ -1,7 +1,10 @@
 from  foreign_papers import *
 from pandas import DataFrame
 import pandas as pd
+import yfinance
 
+def get_paper_full_name(ticker):
+    return yf.Ticker(ticker).info.get("shortName")
 
 def get_ibkr_sharpe_and_performance():
     """
@@ -24,6 +27,7 @@ def get_ibkr_sharpe_and_performance():
             ibkr_df.loc[ibkr_df['Symbol'] == paper, 'sharpe_ratio_12_months'] = sharpe_ratio
             ibkr_df.loc[ibkr_df['Symbol'] == paper, 'performance_1y'] = performance.get("1y", None)
             ibkr_df.loc[ibkr_df['Symbol'] == paper, 'performance_3y'] = performance.get("3y", None)
+            ibkr_df.loc[ibkr_df['Symbol'] == paper, 'Name'] = get_paper_full_name(yf_ticker)
     ibkr_df.to_excel("IBKR_HOLDINGS.xlsx",engine="openpyxl")
     return ibkr_df
 
