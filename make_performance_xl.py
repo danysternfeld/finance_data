@@ -1,5 +1,6 @@
 from ast import ExceptHandler
 from decimal import Decimal
+from pathlib import Path
 import sys
 from flask.config import T
 import requests
@@ -67,13 +68,21 @@ def add_df_columns_to_excel(ws, df,df_heading,ws_column):
 
 def make_performance_xl(file_path: str, output_path: str,paper_composition: str) -> None:
     """Read holdings from an Excel file, enrich them with Bizportal data, and save to a new Excel file."""
-    holdings = get_tlv_data(file_path)
-    ibkr = ibkr_papers.get_ibkr_sharpe_and_performance()
+
     #holdings = DataFrame()
     # read an excel file from the output path
     workbook = load_workbook(output_path)  
     # get active sheet
     ws = workbook.active
+    new_out = output_path.replace("_template.xlsx", "_MAGIC.xlsx")
+    try:
+        workbook.save(new_out)
+    except:
+        print(f"Cant write to {new_out} - make sure the excel file is not open.")
+        sys.exit()
+
+    holdings = get_tlv_data(file_path)
+    ibkr = ibkr_papers.get_ibkr_sharpe_and_performance()
     data_cell_range = "A2:O59"
     #print(holdings.columns)
     # 'מספר נייר', 'שם הנייר', 'שווי אחזקה ב ₪', '%  מהתיק', 'פרופיל חשיפה',
@@ -127,7 +136,7 @@ def make_performance_xl(file_path: str, output_path: str,paper_composition: str)
     add_df_columns_to_excel(ws, df,'management_fee', 9)
     add_df_columns_to_excel(ws, df,'מטבע מסחר', 10)
     add_df_columns_to_excel(ws, df,'שווי אחזקה ב ₪', 13)
-    new_out = output_path.replace(".xlsx", "_MAGIC.xlsx")
+
     write_row(ws,max_row+1,amargeti_row_values)
     set_formula_definitions(ws,len(df))
 
@@ -232,9 +241,10 @@ def adjust_rows(ws, df):
 
 if __name__ == "__main__":
     get_exchange_rates()
-    input_file_path = "C:/Users/danys/OneDrive/Documents/scripts/finance_data/אחזקות.xls"
-    output_file_path = "C:/Users/danys/OneDrive/Documents/scripts/finance_data/דוגמת תחבצ לדני_2 .xlsx"
-    paper_composition = "C:/Users/danys/OneDrive/Documents/scripts/finance_data/הרכב ניירות.xlsx"
+    script_dir = Path(__file__).resolve().parent
+    input_file_path = f"{script_dir}/excel_files/אחזקות.xls"
+    output_file_path = f"{script_dir}/excel_files/Analysis_template.xlsx"
+    paper_composition = f"{script_dir}/excel_files/הרכב ניירות.xlsx"
     make_performance_xl(input_file_path, output_file_path,paper_composition)    
 
 

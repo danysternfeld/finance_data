@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from  foreign_papers import *
 from pandas import DataFrame
 import pandas as pd
@@ -12,8 +14,9 @@ def get_ibkr_sharpe_and_performance():
     computes the Sharpe ratio and performance for each paper, and saves the
     enriched data to a new CSV file.
     """
-    ibkr_file = "Open_Positions.csv"
-    ticker_file = "TICKER in YF.xlsx"
+    script_dir = Path(__file__).resolve().parent
+    ticker_file = f"{script_dir}/excel_files/TICKER in YF.xlsx"
+    ibkr_file = f"{script_dir}/excel_files/Open_Positions.csv"
     tickers_df = pd.read_excel(ticker_file)
     ibkr_df = pd.read_csv(ibkr_file)
     today = pd.Timestamp.now().strftime("%Y-%m-%d")
@@ -29,7 +32,7 @@ def get_ibkr_sharpe_and_performance():
             ibkr_df.loc[ibkr_df['Symbol'] == paper, 'performance_3y'] = performance.get("3y", None)
             ibkr_df.loc[ibkr_df['Symbol'] == paper, 'Name'] = get_paper_full_name(yf_ticker)
             ibkr_df.loc[ibkr_df['Symbol'] == paper, 'management_fee'] = get_expense_ratio(yf_ticker)
-    ibkr_df.to_excel("IBKR_HOLDINGS.xlsx",engine="openpyxl")
+    #ibkr_df.to_excel("IBKR_HOLDINGS.xlsx",engine="openpyxl")
     return ibkr_df
 
 if __name__ == "__main__":
