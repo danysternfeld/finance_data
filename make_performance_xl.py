@@ -15,6 +15,7 @@ from openpyxl.utils import column_index_from_string
 
 
 exchange_rates = {}
+rate_locations = {'USD':"L63",'EUR':"L64",'JPY':'L65','SGD':'L66'}
 
 def get_exchange_rates():
     Currencies = ['eur','usd','jpy','sgd']
@@ -86,16 +87,14 @@ def make_performance_xl(file_path: str, output_path: str,paper_composition: str)
     # 	CurrencyPrimary	AssetClass	PercentOfNAV	sharpe_ratio_12_months	performance_1y	performance_3y
 
     ibkr_df = DataFrame(ibkr, columns=["Name", "Symbol","PositionValue","performance_3y","performance_1y","exposure","sharpe_ratio_12_months",
-                                       "managment_fee","CurrencyPrimary"])
+                                       "management_fee","CurrencyPrimary"])
     print(ibkr_df)
 
     ibkr_df.rename(columns={"Name":'שם הנייר', "Symbol":'מספר נייר',"PositionValue":'שווי אחזקה ב ₪',
                             "performance_3y":'three_year_return_percent',"performance_1y":'תשואה 12 חודשים'
                             ,"exposure": 'פרופיל חשיפה',"sharpe_ratio_12_months":'sharpe_ratio_12_months',
-                                       "managment_fee":"managment_fee","CurrencyPrimary":"מטבע מסחר"},inplace=True)
+                                       "management_fee":"management_fee","CurrencyPrimary":"מטבע מסחר"},inplace=True)
     # convert ibkr values to ILS
-    rate_locations = {'USD':"L63",'EUR':"L64",'JPY':'L65','SGD':'L66'}
-
     for index,row in ibkr_df.iterrows():
         if row["מטבע מסחר"] in exchange_rates.keys():
             ibkr_df.loc[index,'שווי אחזקה ב ₪']  =  f"={str(row['שווי אחזקה ב ₪'])}*{rate_locations[row["מטבע מסחר"]]}"
@@ -182,10 +181,9 @@ def set_formula_definitions(ws,num_rows):
     for col in formulas.keys():
         col_num = column_index_from_string(col)
         column_formula(ws,formulas[col][0],col_num,2,num_rows+2,formulas[col][1])
-    ws["L63"] = exchange_rates['USD']
-    ws["L64"] = exchange_rates['EUR']
-    ws["L65"] = exchange_rates['JPY']
-    ws["L66"] = exchange_rates['SGD']
+    for curr in rate_locations.keys():
+        ws[rate_locations[curr]] = exchange_rates[curr]
+
 
 def find_value(ws,target_value):
     found_cell = None
