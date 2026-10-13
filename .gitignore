@@ -1,3 +1,7 @@
 *.xl*
 *.csv
 __pycache__/*
+build/*
+dist/*
+*.spec
+
