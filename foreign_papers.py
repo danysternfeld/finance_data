@@ -74,5 +74,13 @@ def compute_performance(ticker: str) :
         #print(performance)
     return performance
 
+def get_expense_ratio(ticker):
+    try:
+        fee = float(yf.Ticker(ticker).funds_data.fund_operations.loc['Annual Report Expense Ratio', ticker]) * 100
+        return fee
+    except:
+        print(f"\tCould not get expense ratio for {ticker}")
+        return None
+
 
 
