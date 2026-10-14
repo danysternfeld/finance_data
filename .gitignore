@@ -6,4 +6,4 @@ dist/*
 *.spec
 *.zip
 *.exe
-
+version.py
