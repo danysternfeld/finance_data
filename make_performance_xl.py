@@ -131,13 +131,8 @@ def make_performance_xl(file_path: str, output_path: str,paper_composition: str)
                 s = str(val)
                 s_replaced = s.replace("38",str(amgti_row))
                 amargeti_row_values[i] = s_replaced
-                
-        
 
-
-
-
-    
+   
     #adjust_rows(ws, df)
     clear_range(ws,data_cell_range)
     add_df_columns_to_excel(ws, df,'שם הנייר', 1)
@@ -153,6 +148,9 @@ def make_performance_xl(file_path: str, output_path: str,paper_composition: str)
     write_row(ws,max_row+1,amargeti_row_values)
     ws["AG60"] = f"={amgti_tot}" 
     set_formula_definitions(ws,len(df))
+    # fix the total formulas
+    ws["M60"] = f"=SUM(M2:M{amgti_row})"
+    ws["M61"] = f"=SUM(M2:M{amgti_row-1})"
 
     compo = pd.read_excel(paper_composition)
     #  שם הקרן       ניר  מדינה  קונצרני  assets  מניות ישראל  מניות חול  אגח חול  check  נקוב $
