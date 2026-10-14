@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from  foreign_papers import *
@@ -8,15 +9,22 @@ import yfinance
 def get_paper_full_name(ticker):
     return yf.Ticker(ticker).info.get("shortName")
 
+def get_exe_directory():
+    """ Get the actual directory where the .exe file is running """
+    if hasattr(sys, 'frozen'):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
 def get_ibkr_sharpe_and_performance():
     """
     This function reads the IBKR holdings and ticker mapping from CSV files,
     computes the Sharpe ratio and performance for each paper, and saves the
     enriched data to a new CSV file.
     """
-    script_dir = Path(__file__).resolve().parent
+    script_dir = get_exe_directory()
+    in_path = sys.argv[1]    
     ticker_file = f"{script_dir}/excel_files/TICKER in YF.xlsx"
-    ibkr_file = f"{script_dir}/excel_files/Open_Positions.csv"
+    ibkr_file = f"{script_dir}/{in_path}/Open_Positions.csv"
     tickers_df = pd.read_excel(ticker_file)
     ibkr_df = pd.read_csv(ibkr_file)
     today = pd.Timestamp.now().strftime("%Y-%m-%d")

@@ -1,5 +1,6 @@
 from ast import ExceptHandler
 from decimal import Decimal
+import os
 from pathlib import Path
 import sys
 from flask.config import T
@@ -56,34 +57,36 @@ def count_rows(ws):
 
 def add_df_columns_to_excel(ws, df,df_heading,ws_column):
     """Add columns from a DataFrame to an Excel worksheet."""
-    yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+    #yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
     for idx, col in enumerate(df.columns):
         if col in df_heading:
             col_index = ws_column + df_heading.index(col)
             for row_idx, value in enumerate(df[col], start=2):
                 ws.cell(row=row_idx, column=col_index, value=value)
-                ws.cell(row=row_idx, column=col_index).fill = yellow_fill  # Highlight the cell with yellow color
+                #ws.cell(row=row_idx, column=col_index).fill = yellow_fill  # Highlight the cell with yellow color
 
 
 
 def make_performance_xl(file_path: str, output_path: str,paper_composition: str) -> None:
     """Read holdings from an Excel file, enrich them with Bizportal data, and save to a new Excel file."""
 
+    template_path = f"{file_path.replace(sys.argv[1],"excel_files")}\\Analysis_template.xlsx"
+
     #holdings = DataFrame()
     # read an excel file from the output path
-    workbook = load_workbook(output_path)  
+    workbook = load_workbook(template_path)  
     # get active sheet
     ws = workbook.active
-    new_out = output_path.replace("_template.xlsx", "_MAGIC.xlsx")
+    new_out = template_path.replace("_template.xlsx", "_MAGIC.xlsx").replace("excel_files",output_path)
     try:
         workbook.save(new_out)
     except:
         print(f"Cant write to {new_out} - make sure the excel file is not open.")
         sys.exit()
 
-    holdings = get_tlv_data(file_path)
+    holdings = get_tlv_data(f"{file_path}/אחזקות.xls")
     ibkr = ibkr_papers.get_ibkr_sharpe_and_performance()
-    data_cell_range = "A2:O59"
+    data_cell_range = "A2:AH59"
     #print(holdings.columns)
     # 'מספר נייר', 'שם הנייר', 'שווי אחזקה ב ₪', '%  מהתיק', 'פרופיל חשיפה',
     #   'תאריך פעולה אחרונה', '% שינוי יומי', 'תשואה 12 חודשים', 'רווח ב-%',
@@ -97,7 +100,7 @@ def make_performance_xl(file_path: str, output_path: str,paper_composition: str)
 
     ibkr_df = DataFrame(ibkr, columns=["Name", "Symbol","PositionValue","performance_3y","performance_1y","exposure","sharpe_ratio_12_months",
                                        "management_fee","CurrencyPrimary"])
-    print(ibkr_df)
+    #print(ibkr_df)
 
     ibkr_df.rename(columns={"Name":'שם הנייר', "Symbol":'מספר נייר',"PositionValue":'שווי אחזקה ב ₪',
                             "performance_3y":'three_year_return_percent',"performance_1y":'תשואה 12 חודשים'
@@ -114,12 +117,22 @@ def make_performance_xl(file_path: str, output_path: str,paper_composition: str)
 
     #print(ibkr_df)
     #print(df)
-    cell = find_value(ws,"בית באמרגטי")
+    cell = find_value(ws,"Amargeti house")
     amargeti_row_values = []
+    max_row = len(df)+1
+    amgti_row = max_row+1
+    amgti_tot = f"M{amgti_row}"
     if(cell != None):
         row_num = cell.row
-        amargeti_row_values = list(next(ws.iter_rows(min_row=row_num, max_row=row_num, values_only=True)))
-        max_row = len(df)+1
+        amargeti_row_values = [cl.value for cl in ws[row_num]]
+        for i in range(0,len(amargeti_row_values)) :
+            val = amargeti_row_values[i]
+            if("=" in str(val)):
+                s = str(val)
+                s_replaced = s.replace("38",str(amgti_row))
+                amargeti_row_values[i] = s_replaced
+                
+        
 
 
 
@@ -138,6 +151,7 @@ def make_performance_xl(file_path: str, output_path: str,paper_composition: str)
     add_df_columns_to_excel(ws, df,'שווי אחזקה ב ₪', 13)
 
     write_row(ws,max_row+1,amargeti_row_values)
+    ws["AG60"] = f"={amgti_tot}" 
     set_formula_definitions(ws,len(df))
 
     compo = pd.read_excel(paper_composition)
@@ -155,7 +169,7 @@ def make_performance_xl(file_path: str, output_path: str,paper_composition: str)
         df.loc[df['מספר נייר'] == num_paper, 'מניות חול'] =  row.loc['מניות חול']
         df.loc[df['מספר נייר'] == num_paper, 'מניות ישראל'] =  row.loc['מניות ישראל']
         df.loc[df['מספר נייר'] == num_paper, 'נקוב $'] =  row.loc['נקוב $']
-        df.loc[df['מספר נייר'] == num_paper, 'נקוב EU'] =  row.loc['נקוב EU']
+        df.loc[df['מספר נייר'] == num_paper, 'נקוב EU'] =  row.loc['נקוב EURO']
 
         #print(df.loc[df['מספר נייר'] == row['ניר'], 'מדינה'])
     #print(df['מדינה'])
@@ -176,7 +190,7 @@ def set_formula_definitions(ws,num_rows):
     formulas = {}
     formulas["K"] = ("=E##-3*I##/100",None)
     formulas["L"] = ("=F##-I##/100",     "0.0%")
-    formulas["N"] = ("=M##/$N$60",None)
+    formulas["N"] = ("=M##/$M$60",None)
     formulas["O"] = ("=M##/$M$61",None)
     formulas["V"] = ("=SUM(P##:U##)",None)
     formulas["Y"] = ("=P##*M##",None)
@@ -239,12 +253,20 @@ def adjust_rows(ws, df):
     # 5. Save the Excel file
     #workbook.save(output_file_path)
 
+def get_exe_directory():
+    """ Get the actual directory where the .exe file is running """
+    if hasattr(sys, 'frozen'):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
 if __name__ == "__main__":
     get_exchange_rates()
-    script_dir = Path(__file__).resolve().parent
-    input_file_path = f"{script_dir}/excel_files/אחזקות.xls"
-    output_file_path = f"{script_dir}/excel_files/Analysis_template.xlsx"
-    paper_composition = f"{script_dir}/excel_files/הרכב ניירות.xlsx"
+    script_dir = get_exe_directory()
+    in_path = sys.argv[1]
+
+    input_file_path = f"{script_dir}\\{in_path}"
+    output_file_path = in_path
+    paper_composition = f"{script_dir}\\excel_files\\הרכב ניירות.xlsx"
     make_performance_xl(input_file_path, output_file_path,paper_composition)    
 
 
