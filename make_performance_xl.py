@@ -14,6 +14,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl import load_workbook  
 from openpyxl.styles import PatternFill
 from openpyxl.utils import column_index_from_string
+import version
 
 
 exchange_rates = {}
@@ -258,6 +259,9 @@ def get_exe_directory():
     return os.path.dirname(os.path.abspath(__file__))
 
 if __name__ == "__main__":
+    ver = version.get_version()
+    githash = version.get_hash()
+    print(f"***  Financial data -  version {ver}   git hash: {githash} *** ")
     get_exchange_rates()
     script_dir = get_exe_directory()
     in_path = sys.argv[1]
